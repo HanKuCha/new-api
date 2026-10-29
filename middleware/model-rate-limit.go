@@ -172,8 +172,10 @@ func modelRequestSucceeded(c *gin.Context) bool {
 // ModelRequestRateLimit 模型请求限流中间件
 func ModelRequestRateLimit() func(c *gin.Context) {
 	return func(c *gin.Context) {
+		userID := c.GetInt("id")
+		userLimits, userLimited := setting.ModelRequestRateLimitUsers[userID]
 		// 在每个请求时检查是否启用限流
-		if !setting.ModelRequestRateLimitEnabled {
+		if !setting.ModelRequestRateLimitEnabled && !userLimited {
 			c.Next()
 			return
 		}
@@ -191,9 +193,12 @@ func ModelRequestRateLimit() func(c *gin.Context) {
 
 		// 获取分组的限流配置。配置了独立限流的分组按用户和分组单独计数，
 		// 其余分组共用该用户的全局计数
-		subject := strconv.Itoa(c.GetInt("id"))
+		subject := strconv.Itoa(userID)
 		groupTotalCount, groupSuccessCount, found := setting.GetGroupRateLimit(group)
-		if found {
+		if userLimited {
+			totalMaxCount, successMaxCount = userLimits[0], userLimits[1]
+			subject += ":user"
+		} else if found {
 			totalMaxCount = groupTotalCount
 			successMaxCount = groupSuccessCount
 			subject += ":" + group

@@ -18,10 +18,12 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, renderHook } from '@testing-library/react'
+import i18next from 'i18next'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { checkIsActive } from '@/components/layout/lib/url-utils'
+import { getDashboardSectionNavItems } from '@/features/dashboard/section-registry'
 import {
   parseSidebarModulesAdmin,
   serializeSidebarModulesAdmin,
@@ -74,6 +76,16 @@ function sidebarFor(admin?: object, user?: object, canConfigure = true) {
 }
 
 describe('security sidebar visibility', () => {
+  it('ordinary logged-in users can open the user analytics navigation entry', () => {
+    const { result } = sidebarFor()
+    const items = result.current.flatMap((group) => group.items)
+    expect(items.some((item) => item.url === '/dashboard/models')).toBe(true)
+    expect(
+      getDashboardSectionNavItems(i18next.t, { isAdmin: false }).some(
+        (item) => item.url === '/dashboard/users'
+      )
+    ).toBe(true)
+  })
   it('old configurations show Security & Access immediately after Profile and keep API Keys', () => {
     const { result } = sidebarFor(
       { personal: { enabled: true, personal: true, topup: true } },

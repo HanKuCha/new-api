@@ -21,7 +21,12 @@ import { useState, useMemo } from 'react'
 
 import { useStatus } from '@/hooks/use-status'
 import { getNotice } from '@/lib/api'
+import {
+  FUTABA_GROUP_CAMPAIGN,
+  isFutabaGroupAnnouncement,
+} from '@/lib/futaba-announcement'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { useAuthStore } from '@/stores/auth-store'
 import { useNotificationStore } from '@/stores/notification-store'
 
 function hashString(input: string): string {
@@ -41,8 +46,15 @@ function hashString(input: string): string {
  * Generate a unique key for an announcement
  * Prefer backend id, fall back to a content hash so edits register
  */
-function getAnnouncementKey(item: Record<string, unknown>): string {
+function getAnnouncementKey(
+  item: Record<string, unknown>,
+  userId?: number
+): string {
   if (!item) return ''
+
+  if (isFutabaGroupAnnouncement(item)) {
+    return `${FUTABA_GROUP_CAMPAIGN}:${userId ?? 'guest'}`
+  }
 
   if (item.id !== undefined && item.id !== null) {
     return `id:${item.id}`
@@ -64,6 +76,7 @@ function getAnnouncementKey(item: Record<string, unknown>): string {
  * Provides unread counts and read status management
  */
 export function useNotifications() {
+  const userId = useAuthStore((state) => state.auth.user?.id)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'notice' | 'announcements'>(
     'notice'
@@ -96,7 +109,7 @@ export function useNotifications() {
     lastReadNotice,
     markNoticeRead,
     markAnnouncementsRead,
-    isAnnouncementRead,
+    readAnnouncementKeys,
   } = useNotificationStore()
 
   // Extract notice content
@@ -111,8 +124,8 @@ export function useNotifications() {
 
     const announcementsUnread = announcements.filter(
       (item: Record<string, unknown>) => {
-        const key = getAnnouncementKey(item)
-        return !isAnnouncementRead(key)
+        const key = getAnnouncementKey(item, userId)
+        return !readAnnouncementKeys.includes(key)
       }
     ).length
 
@@ -121,12 +134,18 @@ export function useNotifications() {
       announcements: announcementsUnread,
       total: noticeUnread + announcementsUnread,
     }
-  }, [noticeContent, lastReadNotice, announcements, isAnnouncementRead])
+  }, [
+    noticeContent,
+    lastReadNotice,
+    announcements,
+    readAnnouncementKeys,
+    userId,
+  ])
 
   const markAnnouncementsAsRead = () => {
     if (announcements.length > 0) {
       const allKeys = announcements.map((item: Record<string, unknown>) =>
-        getAnnouncementKey(item)
+        getAnnouncementKey(item, userId)
       )
       markAnnouncementsRead(allKeys)
     }

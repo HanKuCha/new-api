@@ -3,6 +3,7 @@ package setting
 import (
 	"fmt"
 	"math"
+	"os"
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
@@ -24,6 +25,29 @@ var ModelRequestRateLimitCount = 0
 var ModelRequestRateLimitSuccessCount = 1000
 var ModelRequestRateLimitGroup = map[string][2]int{}
 var ModelRequestRateLimitMutex sync.RWMutex
+
+// ModelRequestRateLimitUsers is an operator-only, startup configuration keyed by
+// authenticated user ID. Each pair contains [total requests, successful requests]
+// per ModelRequestRateLimitDurationMinutes, shared across all tokens and groups.
+var ModelRequestRateLimitUsers = map[int][2]int{}
+
+func init() {
+	raw := os.Getenv("MODEL_REQUEST_RATE_LIMIT_USERS")
+	if raw == "" {
+		return
+	}
+	if err := CheckModelRequestRateLimitGroup(raw); err != nil {
+		panic(fmt.Errorf("invalid MODEL_REQUEST_RATE_LIMIT_USERS: %w", err))
+	}
+	if err := common.UnmarshalJsonStr(raw, &ModelRequestRateLimitUsers); err != nil {
+		panic(fmt.Errorf("invalid MODEL_REQUEST_RATE_LIMIT_USERS: %w", err))
+	}
+	for userID := range ModelRequestRateLimitUsers {
+		if userID <= 0 {
+			panic("MODEL_REQUEST_RATE_LIMIT_USERS requires positive user IDs")
+		}
+	}
+}
 
 func ModelRequestRateLimitGroup2JSONString() string {
 	ModelRequestRateLimitMutex.RLock()

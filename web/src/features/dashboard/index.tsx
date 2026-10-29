@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { Eye, EyeOff } from 'lucide-react'
-import { useState, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useState, useCallback, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
@@ -106,6 +106,12 @@ const LazyPerformanceOverview = lazy(() =>
 const LazyUserCharts = lazy(() =>
   import('./components/users/user-charts').then((m) => ({
     default: m.UserCharts,
+  }))
+)
+
+const LazyUserUsageAnalysis = lazy(() =>
+  import('./components/users/user-usage-analysis').then((m) => ({
+    default: m.UserUsageAnalysis,
   }))
 )
 
@@ -250,12 +256,8 @@ export function Dashboard() {
 
   const meta = SECTION_META[activeSection] ?? SECTION_META.overview
   const isAdmin = Boolean(userRole && userRole >= ROLE.ADMIN)
-  const visibleSections = useMemo(
-    () =>
-      DASHBOARD_SECTION_IDS.filter(
-        (section) => section !== 'overview' && (section !== 'users' || isAdmin)
-      ),
-    [isAdmin]
+  const visibleSections = DASHBOARD_SECTION_IDS.filter(
+    (section) => section !== 'overview'
   )
   const handleSectionChange = useCallback(
     (section: string) => {
@@ -399,10 +401,16 @@ export function Dashboard() {
           {activeSection === 'users' && (
             <FadeIn>
               <Suspense fallback={<ModelChartsFallback />}>
-                <LazyUserCharts
-                  filters={userChartsFilters}
-                  onFiltersChange={setUserChartsFilters}
-                />
+                <LazyUserUsageAnalysis />
+                <details className='mt-5 rounded-lg border p-4'>
+                  <summary className='cursor-pointer text-sm font-medium'>
+                    {t('Consumption charts')}
+                  </summary>
+                  <LazyUserCharts
+                    filters={userChartsFilters}
+                    onFiltersChange={setUserChartsFilters}
+                  />
+                </details>
               </Suspense>
             </FadeIn>
           )}
