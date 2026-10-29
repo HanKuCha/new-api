@@ -26,6 +26,7 @@ interface NotificationState {
   readAnnouncementKeys: string[]
   // Timestamp of last "Close Today" action
   closedUntilDate: string | null
+  popupAcknowledgements: string[]
 
   // Actions
   markNoticeRead: (noticeContent: string) => void
@@ -33,6 +34,7 @@ interface NotificationState {
   setClosedUntilDate: (date: string | null) => void
   isAnnouncementRead: (key: string) => boolean
   isNoticeClosed: () => boolean
+  acknowledgePopup: (key: string) => void
 }
 
 /**
@@ -45,6 +47,14 @@ export const useNotificationStore = create<NotificationState>()(
       lastReadNotice: '',
       readAnnouncementKeys: [],
       closedUntilDate: null,
+      popupAcknowledgements: [],
+      acknowledgePopup: (key) => {
+        set((state) => ({
+          popupAcknowledgements: [
+            ...new Set([...state.popupAcknowledgements, key]),
+          ],
+        }))
+      },
 
       markNoticeRead: (noticeContent: string) => {
         // Persist the full trimmed content so edits beyond 100 chars register
@@ -82,6 +92,7 @@ export const useNotificationStore = create<NotificationState>()(
         lastReadNotice: state.lastReadNotice,
         readAnnouncementKeys: state.readAnnouncementKeys,
         closedUntilDate: state.closedUntilDate,
+        popupAcknowledgements: state.popupAcknowledgements,
       }),
     }
   )

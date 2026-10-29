@@ -1,0 +1,8 @@
+services:
+  new-api:
+    image: new-api-futaba:local
+    cpus: 4.0
+    environment:
+      TZ: Asia/Shanghai
+      DEFAULT_LANGUAGE: zh-CN
+      MODEL_REQUEST_RATE_LIMIT_USERS: "${MODEL_REQUEST_RATE_LIMIT_USERS:-}"

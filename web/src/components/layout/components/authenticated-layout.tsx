@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 
 import { AppHeader } from './app-header'
 import { AppSidebar } from './app-sidebar'
+import { GroupAnnouncementDialog } from './group-announcement-dialog'
 
 type AuthenticatedLayoutProps = {
   children?: React.ReactNode
@@ -56,6 +57,7 @@ export function AuthenticatedLayout(props: AuthenticatedLayoutProps) {
           </div>
         </SidebarProvider>
         <CommandMenu />
+        <GroupAnnouncementDialog />
       </SearchProvider>
     </LayoutProvider>
   )

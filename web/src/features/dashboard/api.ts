@@ -17,7 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
+import { requireServerSuccess } from '@/lib/server-error-message'
 
+import type { UserUsageRow, UserUsageTimeRange } from './lib/user-usage'
 import type {
   FlowQuotaDataItem,
   QuotaDataItem,
@@ -64,6 +66,14 @@ export async function getUserQuotaDataByUsers(params: {
     { params }
   )
   return res.data
+}
+
+export async function getUserUsageAnalytics(params: UserUsageTimeRange) {
+  const res = await api.get<{ success: boolean; data: UserUsageRow[] }>(
+    '/api/data/user-analytics',
+    { params }
+  )
+  return requireServerSuccess(res.data).data
 }
 
 export async function getFlowQuotaDates(
