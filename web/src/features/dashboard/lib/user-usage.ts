@@ -16,6 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { formatNumber } from '@/lib/format'
+
+export function formatUserUsageTokens(
+  value: number,
+  locale: string | undefined,
+  exact: boolean
+): string {
+  if (exact) return formatNumber(value, locale)
+  const scaled = value / 100_000_000
+  const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 4 })
+  if (value > 0 && scaled < 0.0001) return `<${formatter.format(0.0001)}`
+  return formatter.format(scaled)
+}
+
 export interface UserUsageRow {
   user_id: number
   username: string

@@ -7382,6 +7382,8 @@
     "Time zone": "Time zone",
     "User usage ranking": "User usage ranking",
     "Username, display name or user ID": "Username, display name or user ID",
-    "Insufficient permissions": "Insufficient permissions"
+    "Insufficient permissions": "Insufficient permissions",
+    "{{value}} hundred million": "{{value}} hundred million",
+    "Show exact token counts": "Show exact token counts"
   }
 }
