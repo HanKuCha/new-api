@@ -36,6 +36,7 @@ import { formatNumber } from '@/lib/format'
 interface UserUsageTableProps {
   rows: UserUsageSummary[]
   mode: 'users' | 'models'
+  formatTokens: (value: number) => string
   onUserSelect?: (user: UserUsageSummary) => void
 }
 
@@ -44,6 +45,7 @@ export function UserUsageTable(props: UserUsageTableProps) {
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const onUserSelect = props.onUserSelect
   const mode = props.mode
+  const formatTokens = props.formatTokens
   const columns = useMemo<ColumnDef<UserUsageSummary>[]>(() => {
     const metricLabels = [
       { id: 'quota', title: t('Recorded consumption') },
@@ -61,15 +63,19 @@ export function UserUsageTable(props: UserUsageTableProps) {
       header: (context) => (
         <DataTableColumnHeader column={context.column} title={metric.title} />
       ),
-      cell: (context) =>
-        metric.id === 'quota'
-          ? formatQuotaWithCurrency(context.getValue<number>(), {
-              abbreviate: false,
-              digitsLarge: 4,
-              digitsSmall: 6,
-              locale,
-            })
-          : formatNumber(context.getValue<number>(), locale),
+      cell: (context) => {
+        const value = context.getValue<number>()
+        if (metric.id === 'quota') {
+          return formatQuotaWithCurrency(value, {
+            abbreviate: false,
+            digitsLarge: 4,
+            digitsSmall: 6,
+            locale,
+          })
+        }
+        if (metric.id === 'request_count') return formatNumber(value, locale)
+        return formatTokens(value)
+      },
     }))
     const identity: ColumnDef<UserUsageSummary> = {
       accessorKey: mode === 'users' ? 'username' : 'model_name',
@@ -134,7 +140,7 @@ export function UserUsageTable(props: UserUsageTableProps) {
         dayjs.unix(row.original.last_used_at).format('YYYY-MM-DD HH:mm:ss'),
     })
     return result
-  }, [mode, onUserSelect, t, locale])
+  }, [mode, onUserSelect, t, locale, formatTokens])
   const { table } = useDataTable({
     data: props.rows,
     columns,

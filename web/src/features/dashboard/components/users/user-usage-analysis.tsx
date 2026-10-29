@@ -25,13 +25,16 @@ import { Dialog } from '@/components/dialog'
 import { ErrorState } from '@/components/error-state'
 import { LoadingState } from '@/components/loading-state'
 import { Button } from '@/components/ui/button'
+import { Field, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { Switch } from '@/components/ui/switch'
 import { getUserUsageAnalytics } from '@/features/dashboard/api'
 import {
   aggregateUserUsage,
   filterUserUsage,
+  formatUserUsageTokens,
   type UserUsageSummary,
   type UserUsageTimeRange,
 } from '@/features/dashboard/lib/user-usage'
@@ -56,6 +59,7 @@ export function UserUsageAnalysis() {
   )
   const [search, setSearch] = useState('')
   const [model, setModel] = useState('')
+  const [exactTokens, setExactTokens] = useState(false)
   const [selectedUser, setSelectedUser] = useState<UserUsageSummary | null>(
     null
   )
@@ -105,6 +109,13 @@ export function UserUsageAnalysis() {
       start_timestamp: start ? Math.floor(start.getTime() / 1000) : 0,
       end_timestamp: Math.floor(end.getTime() / 1000),
     })
+  }
+
+  function formatTokens(value: number): string {
+    const formatted = formatUserUsageTokens(value, locale, exactTokens)
+    return exactTokens
+      ? formatted
+      : t('{{value}} hundred million', { value: formatted })
   }
 
   function selectPreset(days: number) {
@@ -197,6 +208,16 @@ export function UserUsageAnalysis() {
             </NativeSelect>
           </div>
         </div>
+        <Field orientation='horizontal'>
+          <Switch
+            id='usage-exact-tokens'
+            checked={exactTokens}
+            onCheckedChange={setExactTokens}
+          />
+          <FieldLabel htmlFor='usage-exact-tokens'>
+            {t('Show exact token counts')}
+          </FieldLabel>
+        </Field>
         <p className='text-muted-foreground text-xs'>
           {t('Time zone')}: {Intl.DateTimeFormat().resolvedOptions().timeZone}
         </p>
@@ -229,15 +250,15 @@ export function UserUsageAnalysis() {
               },
               {
                 label: t('Input Tokens'),
-                value: formatNumber(totals.input, locale),
+                value: formatTokens(totals.input),
               },
               {
                 label: t('Output Tokens'),
-                value: formatNumber(totals.output, locale),
+                value: formatTokens(totals.output),
               },
               {
                 label: t('Total Tokens'),
-                value: formatNumber(totals.input + totals.output, locale),
+                value: formatTokens(totals.input + totals.output),
               },
             ].map((stat) => (
               <div className='min-w-0 rounded-lg border p-3' key={stat.label}>
@@ -258,6 +279,7 @@ export function UserUsageAnalysis() {
           <UserUsageTable
             rows={users}
             mode='users'
+            formatTokens={formatTokens}
             onUserSelect={setSelectedUser}
           />
           <p className='text-muted-foreground text-xs'>
@@ -280,7 +302,11 @@ export function UserUsageAnalysis() {
         )}
         contentClassName='sm:max-w-6xl'
       >
-        <UserUsageTable rows={detailRows} mode='models' />
+        <UserUsageTable
+          rows={detailRows}
+          mode='models'
+          formatTokens={formatTokens}
+        />
       </Dialog>
     </div>
   )

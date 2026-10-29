@@ -17,11 +17,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import i18next from 'i18next'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { UserUsageRow } from '@/features/dashboard/lib/user-usage'
+import fr from '@/i18n/locales/fr.json'
+import zh from '@/i18n/locales/zh.json'
 import { api } from '@/lib/api'
 
 import { UserUsageAnalysis } from '../user-usage-analysis'
@@ -76,7 +79,78 @@ beforeEach(() => {
   })
 })
 
+afterEach(async () => {
+  await i18next.changeLanguage('en')
+})
+
 describe('user usage analysis', () => {
+  it('updates token units and decimal formatting when the interface language changes', async () => {
+    i18next.addResourceBundle('zhCN', 'translation', zh.translation)
+    i18next.addResourceBundle('fr', 'translation', fr.translation)
+    await i18next.changeLanguage('zhCN')
+    vi.mocked(api.get).mockResolvedValue({
+      data: {
+        success: true,
+        data: [{ ...usageRows()[0], prompt_tokens: 123456789 }],
+      },
+    })
+    renderAnalysis()
+    await screen.findByRole('table')
+    expect(screen.getAllByText('1.2346 亿')).toHaveLength(4)
+    await act(async () => {
+      await i18next.changeLanguage('fr')
+    })
+    expect(screen.getAllByText('1,2346 × 10⁸')).toHaveLength(4)
+    expect(
+      screen.getByRole('switch', {
+        name: fr.translation['Show exact token counts'],
+      })
+    ).not.toBeChecked()
+  })
+
+  it('defaults all token metrics to hundred millions and toggles exact counts including model details', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      data: {
+        success: true,
+        data: [
+          {
+            ...usageRows()[0],
+            prompt_tokens: 123456789,
+            completion_tokens: 23456789,
+          },
+        ],
+      },
+    })
+    const user = userEvent.setup()
+    renderAnalysis()
+    const table = await screen.findByRole('table')
+    const toggle = screen.getByRole('switch', {
+      name: 'Show exact token counts',
+    })
+    expect(toggle).not.toBeChecked()
+    expect(screen.getAllByText('1.2346 hundred million')).toHaveLength(2)
+    expect(screen.getAllByText('0.2346 hundred million')).toHaveLength(2)
+    expect(screen.getAllByText('1.4691 hundred million')).toHaveLength(2)
+    await user.click(toggle)
+    expect(toggle).toBeChecked()
+    expect(screen.getAllByText('123,456,789')).toHaveLength(2)
+    expect(screen.getAllByText('23,456,789')).toHaveLength(2)
+    expect(screen.getAllByText('146,913,578')).toHaveLength(2)
+    await user.click(within(table).getByRole('button', { name: longUsername }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('123,456,789')).toBeVisible()
+    await user.keyboard('{Escape}')
+    toggle.focus()
+    await user.keyboard(' ')
+    expect(toggle).not.toBeChecked()
+    await user.click(within(table).getByRole('button', { name: longUsername }))
+    expect(
+      within(await screen.findByRole('dialog')).getByText(
+        '1.2346 hundred million'
+      )
+    ).toBeVisible()
+  })
+
   it('shows more than ten users and paginates through all users', async () => {
     const user = userEvent.setup()
     renderAnalysis()
@@ -118,6 +192,9 @@ describe('user usage analysis', () => {
   it('filters by model before calculating user totals and keeps free requests', async () => {
     renderAnalysis()
     await screen.findByRole('table')
+    fireEvent.click(
+      screen.getByRole('switch', { name: 'Show exact token counts' })
+    )
     fireEvent.change(screen.getByLabelText('Model'), {
       target: { value: 'free-model' },
     })

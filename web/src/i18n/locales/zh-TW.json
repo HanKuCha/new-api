@@ -7382,6 +7382,8 @@
     "Time zone": "時區",
     "User usage ranking": "使用者呼叫排行榜",
     "Username, display name or user ID": "使用者名稱、顯示名稱或使用者 ID",
-    "Insufficient permissions": "權限不足"
+    "Insufficient permissions": "權限不足",
+    "{{value}} hundred million": "{{value}} 億",
+    "Show exact token counts": "顯示完整 Token 數字"
   }
 }
